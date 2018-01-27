@@ -1,3 +1,10 @@
+#include <SD.h>
+#include <Adafruit_NeoPixel.h>
+
+#ifdef __AVR__
+#include <avr/power.h>
+#endif
+
 #include <aes.h>
 #include <aes128_dec.h>
 #include <aes128_enc.h>
@@ -24,9 +31,16 @@
 #include <keysize_descriptor.h>
 #include <memxor.h>
 
+
+
+#define PIN 6
+
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(32, PIN, NEO_GRB + NEO_KHZ800);
+
+
 void setup() {
   // put your setup code here, to run once:
-  Serial.begin(57600);
+  Serial.begin(9600);
   uint8_t key[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
   char data[] = "0123456789012345"; //16 chars == 16 bytes
   aes128_enc_single(key, data);
@@ -35,9 +49,11 @@ void setup() {
   aes128_dec_single(key, data);
   Serial.print("decrypted:");
   Serial.println(data);
-}
+
 
 void loop() {
   // put your main code here, to run repeatedly:
-
+  Serial.println("test");
+  delay(1000);
 }
+
