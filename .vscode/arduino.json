@@ -1,0 +1,5 @@
+{
+    "board": "adafruit:avr:feather32u4",
+    "port": "/dev/cu.usbmodem1411",
+    "sketch": "passman/passman.ino"
+}
