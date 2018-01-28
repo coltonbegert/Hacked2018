@@ -31,6 +31,7 @@
 #include <keysize_descriptor.h>
 #include <memxor.h>
 
+#define PASSWORD_SALT   "BigColtonAndBigPeterAndBigAristotle"
 
 #define PIN 6
 
@@ -58,6 +59,7 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(32, PIN, NEO_GRB + NEO_KHZ800);
 
 char once = 1;
 aes_context ctx;
+static char iv[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23};
 
 int decrypt_all(char * data, uint8_t * key, const void * iv, size_t len){
   aes192_cbc_dec(key, iv, data, len);
@@ -361,7 +363,6 @@ void setup() {
   if (!SD.begin(CS)) {
     Serial.println("SD card says no");
     return;
-
   }
   
   master_pass = NULL;
@@ -369,7 +370,8 @@ void setup() {
 
   led_state = RED_NO;
   
-  request_master_pass();
+  //request_master_pass();
+  master_pass = "password123";
   // Serial.println("Setup complete!");
 
 }
@@ -402,16 +404,25 @@ void loop() {
   }
 
   if (master_pass && !master_aes) {
-    strip.setPixelColor(2, 255, 255, 255);
-    strip.show();
-    delay(100);
-    strip.setPixelColor(2,0,0,0);
-    strip.show();
+    if (strlen(master_pass) < 24) {
+      strncpy(master_pass + strlen(master_pass), PASSWORD_SALT, 24 - strlen(master_pass));
+    }
+    
+    struct Message master_key_m;
+    if (!read_mkey(&master_key_m)) {
+      return;
+    }
+
+    decrypt_all(master_key_m.message, master_pass, iv, 32);
+
+    Serial.println(master_key_m.message);
+
+    free(master_key_m.message);
   }
   if (master_pass && master_aes) {
     strip.setPixelColor(2, 0, 255, 0);
     strip.show();
-
+    Serial.println(master_pass);
   }
 
   // if (!master_pass) {

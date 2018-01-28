@@ -4,7 +4,7 @@ import struct
 import time
 
 BAUD_RATE = 9600
-KEY_LENGTH = 16
+KEY_LENGTH = 24
 
 def init():
     devices = serial.tools.list_ports.comports()
