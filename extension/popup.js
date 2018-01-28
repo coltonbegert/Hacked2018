@@ -42,41 +42,101 @@ document.addEventListener("DOMContentLoaded", function (event) {
 
 
 document.addEventListener("DOMContentLoaded", function (event) {
+    fetch("http://localhost:5000/api/unlocked", {
+        method: "get"
+    }).then(function (res) {
+        return res.json();
+    }).then(function (json) {
+        console.log(json.msg);
+        if (json.msg) {
+            document.getElementById('autofilldiv').style.display = "inline-block";
+            document.getElementById('connected').style.display = "none";
+        } else {
+            // console.log("ye");
+            document.getElementById('autofilldiv').style.display = "none";
+            document.getElementById('connected').style.display = "inline-block";
+            // window.onload = function () {
+            //     console.log("test");
+            // }
+
+        }
+    })
+});
+
+document.addEventListener("DOMContentLoaded", function (event) {
 var options = {
     valueNames: ['website', 'username', "id"],
     item: '<li class="listitm"><h3 class="website"></h3><p class="username"></p><button class="remove-item-btn">Delete</button><p class="id" style="display:none;">id</p></li>'
 };
 
-var values = [
-    {
-        website:"google.com",
-        username:"begert@ualberta.ca",
-        id:"1"
-    }, 
-    {
-        website:"reddit",
-        username:"colton",
-        id:"2"
-    }
-];
+    fetch("http://localhost:5000/api/toc", {
+        method: "get"
+    }).then(function (res) {
+        return res.json();
+    }).then(function (json) {
+        var values = json;
 
-var userList = new List('users', options, values);
+        var userList = new List('users', options, values);
 
 
-var removeBtns = $('.remove-item-btn');
+        var removeBtns = $('.remove-item-btn');
 
-    refreshCallbacks();
+        refreshCallbacks();
 
-function refreshCallbacks() {
-    // Needed to add new buttons to jQuery-extended object
-    removeBtns = $(removeBtns.selector);
+        function refreshCallbacks() {
+            // Needed to add new buttons to jQuery-extended object
+            removeBtns = $(removeBtns.selector);
 
-    removeBtns.click(function () {
-        // console.log("button");
-        var itemId = $(this).closest('li').find('.id').text();
-        userList.remove('id', itemId);
-    });
-}
+            removeBtns.click(function () {
+                // console.log("button");
+                var itemId = $(this).closest('li').find('.id').text();
+                userList.remove('id', itemId);
+            });
+        }
+        // if (json.msg) {
+        //     document.getElementById('autofilldiv').style.display = "inline-block";
+        //     document.getElementById('connected').style.display = "none";
+        // } else {
+        //     // console.log("ye");
+        //     document.getElementById('autofilldiv').style.display = "none";
+        //     document.getElementById('connected').style.display = "inline-block";
+        //     // window.onload = function () {
+        //     //     console.log("test");
+        //     // }
+
+        // }
+    })
+
+// var values = [
+//     {
+//         website:"google.com",
+//         username:"begert@ualberta.ca",
+//         id:"1"
+//     }, 
+//     {
+//         website:"reddit",
+//         username:"colton",
+//         id:"2"
+//     }
+// ];
+
+// var userList = new List('users', options, values);
+
+
+// var removeBtns = $('.remove-item-btn');
+
+//     refreshCallbacks();
+
+// function refreshCallbacks() {
+//     // Needed to add new buttons to jQuery-extended object
+//     removeBtns = $(removeBtns.selector);
+
+//     removeBtns.click(function () {
+//         // console.log("button");
+//         var itemId = $(this).closest('li').find('.id').text();
+//         userList.remove('id', itemId);
+//     });
+// }
 
 });
 

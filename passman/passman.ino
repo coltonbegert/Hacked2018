@@ -507,7 +507,7 @@ void setup() {
 
   led_state = RED_NO;
   
-  request_master_pass();
+  // request_master_pass();
   // master_pass = "password123";
   // Serial.println("Setup complete!");
 
