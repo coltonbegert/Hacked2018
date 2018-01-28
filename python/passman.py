@@ -143,7 +143,13 @@ def passman_create():
     t1 = threading.Thread(target=passman_read, args=(ser,))
     t1.start()
     print(passman_isConnected())
-
+    send_message(ser, "K", "password123")
+    time.sleep(1)
+   # send_message(ser, "S", "0000001")
+   
+    # 'P' type message specifies a password retrieval based on table of contents
+    # index value
+    send_message(ser, "P", "0000001")
     # while True:
     #     time.sleep(15)
     #     send_message(ser, "m", "keepalive")

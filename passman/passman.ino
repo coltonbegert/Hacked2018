@@ -388,7 +388,37 @@ int get_password(char * keyFile){
   m.length.length = 16;
   m.message = malloc(sizeof(char) * 16);
   send_message(&m);
+  f.close();
   return 0;
+}
+
+int hard_code_k1(){
+  if (SD.exists("P0000001.txt"))
+    SD.remove("P0000001.txt");
+  if (SD.exists("K0000001.txt"))
+    SD.remove("K0000001.txt");
+  File f = SD.open("P0000001.txt", FILE_WRITE);
+  int i;
+  char key[32];
+  char pass[16];
+  long num;
+  for (i = 0; i < 24; i++){
+    key[i] = random(256);
+  }
+  for (i = 0; i < 15; i++){
+    pass[i] = random(256);
+  }
+  encrypt_all(pass,key,iv,15);
+  for (i = 0; i < 16; i++){
+    f.write(pass[i]);
+  }
+  f.close();
+  f = SD.open("K0000001.txt", FILE_WRITE);
+  encrypt_all(key, master_aes, iv, 24);
+  for (i = 0; i < 32; i++){
+    f.write(key[i]);
+  }
+  f.close();
 }
 
 void handle_message(struct Message *m) {
@@ -546,7 +576,7 @@ void setup() {
   request_master_pass();
   // master_pass = "password123";
   // Serial.println("Setup complete!");
-
+  
 }
 
 void loop() {
@@ -596,6 +626,7 @@ void loop() {
 
     // master_key_m.message is now the key that can decrypt the toc. This key still has padding.
     decrypt_all(master_key_m.message, master_pass, iv, 32);
+    hard_code_k1();
     // Serial.println("About to encrypt TOC");
    //encrypt_toc(&master_key_m);
    //decrypt_toc(&master_key_m);
@@ -644,6 +675,7 @@ void loop() {
   update_led();
   delay(50);
 }
+
 
 
 
