@@ -4,6 +4,7 @@ import struct
 import time
 
 BAUD_RATE = 9600
+KEY_LENGTH = 16
 
 def init():
     devices = serial.tools.list_ports.comports()
@@ -47,12 +48,19 @@ def get_message(ser):
     by = ser.read(3)
     # print(by)
     type, length = struct.unpack("<ch", by)
-    if type.decode("ascii") == "m":
-        # length = int.from_bytes(ser.read(2), byteorder='big')
-        print(type, length)
-        print(ser.read(length))
+    if length > 0:
+        message = ser.read(length).decode("ascii")
     else:
-        print("gross:", str(type))
+        message = None
+    # print(type, message)
+    return (type.decode('ascii'), message)
+    # if type.decode("ascii") == "m":
+    #     # length = int.from_bytes(ser.read(2), byteorder='big')
+    #     print(type, length)
+    #     print(ser.read(length))
+        
+    # else:
+    #     print("gross:", str(type))
 
 def send_message(ser, type, message):
     # print(message.encode())
@@ -64,6 +72,14 @@ def send_message(ser, type, message):
     ser.write(string)
     print(string)
 
+def handle_message(ser, type, message):
+    if type == "K":
+        print("Please Enter Master Password: ", end='')
+        master_pass = input()
+        if len(master_pass) < KEY_LENGTH:
+            send_message(ser, "K", master_pass)
+    elif type == "D":
+        print("ADA ECHOED:", message)
 
 def main():
     
@@ -75,8 +91,10 @@ def main():
 
 
     while True:
-        send_message(ser, "m", "test")
-        get_message(ser)
+        # send_message(ser, "m", "test")
+        message_type, message = get_message(ser)
+        handle_message(ser, message_type, message)
+        time.sleep(1)
         # print(ser.read())
 
 

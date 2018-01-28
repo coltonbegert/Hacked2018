@@ -12,7 +12,15 @@
 #define MASTER_KEY      "MASTRKEY.txt"
 #define T_OF_C          "TABLECOL.txt"
 
+#define ECHO_ALL true
+
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(32, PIN, NEO_GRB + NEO_KHZ800);
+
+char *master_pass;
+uint16_t master_pass_length = 0;
+
+char *master_aes;
+
 
 union byte_union{
   uint16_t length;
@@ -88,7 +96,10 @@ void send_message(struct Message *m) {
   Serial.print(m->type);
 
   Serial.write((uint8_t *) &m->length.length, 2);
-  Serial.write((uint8_t *)m->message, m->length.length);
+  if (m->length.length > 0) {
+    Serial.write((uint8_t *)m->message, m->length.length);
+
+  }
 
 }
 
@@ -98,11 +109,52 @@ void recv_message(struct Message *m) {
   m->length.bytes[1] = Serial.read();
   m->length.bytes[0] = Serial.read();
 
-  m->message = malloc(m->length.length * sizeof(char));
-  for (int i = 0; i < m->length.length; i++) {
-    m->message[i] = (char)Serial.read();
+  if (m->length.length > 0) {
+    m->message = malloc(m->length.length * sizeof(char));
+    for (int i = 0; i < m->length.length; i++) {
+      m->message[i] = (char)Serial.read();
+    }
   }
   
+}
+void handle_message(struct Message *m) {
+  switch (m->type) {
+    case 'K':
+      master_pass_length = m->length.length;
+      master_pass = malloc(master_pass_length);
+      memcpy(master_pass, m->message, master_pass_length);
+
+      break;
+    default:
+
+    break;
+
+
+  }
+  if (ECHO_ALL) {
+    
+    strip.setPixelColor(0, 255, 255, 255);
+    strip.show();
+    char t = m->type;
+    m->type = 'D';
+    send_message(m);
+    m->type = t;
+    strip.setPixelColor(0, 0, 0,0);
+    strip.show();
+  }
+  return;
+}
+
+
+void request_master_pass() {
+  struct Message *me;
+  me = malloc(sizeof(struct Message));
+  me->message = NULL;
+  me->type = 'K';
+  me->length.length = 0;
+  send_message(me);
+  free(me);
+  return;
 }
 
 void setup() {
@@ -117,7 +169,11 @@ void setup() {
     // Serial.println("SD card says no");
     return;
   }
+  
+  master_pass = NULL;
+  master_aes = NULL;
 
+  request_master_pass();
   // Serial.println("Setup complete!");
 }
 
@@ -131,7 +187,8 @@ void loop() {
 
   if (Serial.available() >= 3) {
     recv_message(me);
-    send_message(me);
+    handle_message(me);
+    // send_message(me);
   }
   if (me->message) {
     free(me->message);
@@ -139,6 +196,30 @@ void loop() {
   }
   free(me);
   me = NULL;
+  if (master_pass) {
+    strip.setPixelColor(1, 0, 255, 0);
+    strip.show();
+  } else {
+    strip.setPixelColor(1, 0, 0, 0);
+    strip.show();
+  }
+
+  if (master_pass && !master_aes) {
+    strip.setPixelColor(2, 255, 255, 255);
+    strip.show();
+    delay(100);
+    strip.setPixelColor(2,0,0,0);
+    strip.show();
+  }
+  if (master_pass && master_aes) {
+    strip.setPixelColor(2, 0, 255, 0);
+    strip.show();
+
+  }
+
+  // if (!master_pass) {
+  //   request_master_pass();
+  // }
 
   // struct Message master_key;
   // if (!read_mkey(&master_key)) {
