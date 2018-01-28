@@ -11,13 +11,15 @@ cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
 app.config['CORS_HEADERS'] = 'Content-Type'
 
 @app.route("/api/connected", methods=['GET'])
+@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 def get_connected():
     return jsonify({'msg': passman_isConnected()})
 
 
 @app.route("/api/toc", methods=['GET'])
+@cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 def get_toc():
-    return passman_toc()
+    return jsonify(passman_toc())
 
 @app.route("/api/unlocked", methods=['GET', 'OPTIONS'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])

@@ -109,7 +109,7 @@ def send_message(ser, type, message):
     print(string)
 
 def handle_message(ser, type, message):
-    global Unlocked, Table_of_Contents
+    global Unlocked, Table_of_Contents, TOC_JSON
     if type == "K":
         print("Please Enter Master Password: ", end='')
         master_pass = input()
@@ -126,18 +126,24 @@ def handle_message(ser, type, message):
             Table_of_Contents = Table_of_Contents + message
             # print(len(Table_of_Contents), len(message))
         else:
+            # print(Table_of_Contents[:-2])
             # print("we het here", len(Table_of_Contents))
             # TOC_JSON = "[{"
             rr = []
-            for row in Table_of_Contents.split():
-                r = row.split(',')
+            toc = Table_of_Contents[:-3]
+            print(toc)
+            for row in toc.split('\n'):
                 # print(row)
-                rr.append("id:'%s',website:'%s',username:'%s'" % (r[0], r[1], r[2]))
+                r = row.split(',')
+                try:
+                    rr.append('"id":"%s","website":"%s","username":"%s","password":"%s"' % (r[0], r[1], r[2], r[3]))
+                except:
+                    continue
+                    # continue
             # "},{".join(["id:'%s',username:'%s',website:'%s'"%(row[0], row[2], row[1]) for row.split(',') ])
             TOC_JSON = "[{" + ('},{').join(rr) +"}]"
-            # print(TOC_JSON)
+            print(TOC_JSON)
             Unlocked = True
-            # print(Table_of_Contents)
     elif type == "D":
         print("ADA ECHOED:", message)
 
@@ -178,6 +184,9 @@ def passman_attemptUnlock(password):
     #     time.sleep(0.1)
 
 def passman_toc():
+    global TOC_JSON
+    print("hello world")
+    print(TOC_JSON)
     return TOC_JSON
 
 def main():

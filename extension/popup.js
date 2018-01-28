@@ -64,50 +64,68 @@ document.addEventListener("DOMContentLoaded", function (event) {
 });
 
 document.addEventListener("DOMContentLoaded", function (event) {
-var options = {
-    valueNames: ['website', 'username', "id"],
-    item: '<li class="listitm"><h3 class="website"></h3><p class="username"></p><button class="remove-item-btn">Delete</button><p class="id" style="display:none;">id</p></li>'
-};
-
     fetch("http://localhost:5000/api/toc", {
         method: "get"
     }).then(function (res) {
         return res.json();
     }).then(function (json) {
-        var values = json;
+        console.log(JSON.parse(json))
 
-        var userList = new List('users', options, values);
+        var options = {
+            valueNames: ['website', 'username', "id", "password"],
+            item: '<li class="listitm"><h3 class="website"></h3><p class="username"></p><button class="remove-item-btn">Delete</button><p class="id" style="display:none;">id</p><p class="password" style="display:none;">password</p></li>'
+        };
+        var userList = new List('users', options, JSON.parse(json));
 
 
-        var removeBtns = $('.remove-item-btn');
+    var removeBtns = $('.remove-item-btn');
 
-        refreshCallbacks();
+    refreshCallbacks();
 
-        function refreshCallbacks() {
-            // Needed to add new buttons to jQuery-extended object
-            removeBtns = $(removeBtns.selector);
+    function refreshCallbacks() {
+        // Needed to add new buttons to jQuery-extended object
+        removeBtns = $(removeBtns.selector);
 
-            removeBtns.click(function () {
-                // console.log("button");
-                var itemId = $(this).closest('li').find('.id').text();
-                userList.remove('id', itemId);
-            });
-        }
-        // if (json.msg) {
-        //     document.getElementById('autofilldiv').style.display = "inline-block";
-        //     document.getElementById('connected').style.display = "none";
-        // } else {
-        //     // console.log("ye");
-        //     document.getElementById('autofilldiv').style.display = "none";
-        //     document.getElementById('connected').style.display = "inline-block";
-        //     // window.onload = function () {
-        //     //     console.log("test");
-        //     // }
+        removeBtns.click(function () {
+            // console.log("button");
+            var itemId = $(this).closest('li').find('.id').text();
+            userList.remove('id', itemId);
+        });
+    }
 
-        // }
     })
+    // var values = [];
+    //     {
+    //         website:"google.com",
+    //         username:"begert@ualberta.ca",
+    //         id:"1"
+    //     }, 
+    //     {
+    //         website:"reddit",
+    //         username:"colton",
+    //         id:"2"
+    //     }
+    // ];
 
-// var values = [
+    // var userList = new List('users', options, values);
+
+
+    // var removeBtns = $('.remove-item-btn');
+
+    // refreshCallbacks();
+
+    // function refreshCallbacks() {
+    //     // Needed to add new buttons to jQuery-extended object
+    //     removeBtns = $(removeBtns.selector);
+
+    //     removeBtns.click(function () {
+    //         // console.log("button");
+    //         var itemId = $(this).closest('li').find('.id').text();
+    //         userList.remove('id', itemId);
+    //     });
+    // }
+
+var values = [];
 //     {
 //         website:"google.com",
 //         username:"begert@ualberta.ca",
@@ -153,6 +171,27 @@ document.addEventListener("DOMContentLoaded", function (event) {
         }
     })
 });
+
+// document.addEventListener("DOMContentLoaded", function (event) {
+//     document.getElementById("autofill").addEventListener("click", function (event) {
+//         fetch("http://localhost:5000/api/toc", {
+//             method: "get"
+//         }).then(function (res) {
+//             return res.json();
+//         }).then(function (json) {
+//             var data = JSON.parse(json)
+//             chrome.tabs.getSelected(null, function (tab, data) {
+//                 var tablink = tab.url;
+//                 document.getElementById("add-website").value = tablink;
+//                 console.log(tablink, data);
+//             });
+
+//             // console.log(JSON.parse(json))
+
+            
+//         });
+//     })
+// });
 
 
 document.addEventListener("DOMContentLoaded", function (event) {
