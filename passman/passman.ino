@@ -42,7 +42,11 @@
 #define KEY_SHAPE       0x06A9F906
                         //00000110 10101001 11111001 00000110
 
-enum led_state {NONE, BLINK_RED_KEY, ORANGE_KEY, PAUSE};
+#define NO_SHAPE        0xEAAAAAEE
+                        //11101010 10101010 10101010 11101110
+                       
+
+enum led_state {NONE, BLINK_RED_KEY, ORANGE_KEY, RED_NO, PAUSE};
 enum led_state led_state = NONE;
 
 #define MAX_BRIGHT 10
@@ -279,12 +283,19 @@ void update_led()
   static enum led_state last_state = NONE;
   static int brightness = 1;
   static bool brighten = true;
+  static int timer = 0;
   if (last_state != led_state) {
     // need to initialize the new state
     switch (led_state) {
       case BLINK_RED_KEY:
+        strip.setBrightness(0);
         brightness = 1;
         brighten = true;
+        break;
+      case RED_NO:
+        strip.setBrightness(0);
+        timer = 0;
+        break;
     }
   }
 
@@ -321,6 +332,19 @@ void update_led()
     strip.setBrightness(2);
   }
 
+  if (led_state == RED_NO) {
+    for (int i = 0; i < 32; ++i) {
+      if ((NO_SHAPE >> i) & 1) {
+        strip.setPixelColor(i, strip.Color(255, 0, 0));
+      }
+    }
+    strip.setBrightness(2);
+    timer += 50;
+    if (timer >= 3000) {
+      led_state = BLINK_RED_KEY;
+    }
+  }
+
   strip.show();
 
 }
@@ -343,7 +367,7 @@ void setup() {
   master_pass = NULL;
   master_aes = NULL;
 
-  led_state = BLINK_RED_KEY;
+  led_state = RED_NO;
   
   request_master_pass();
   // Serial.println("Setup complete!");
@@ -352,10 +376,7 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-
-  delay(1000);
-
-
+  
   struct Message *me;
   me = malloc(sizeof(struct Message));
   me->message = NULL;
@@ -430,6 +451,7 @@ void loop() {
   update_led();
   delay(50);
 }
+
 
 
 
