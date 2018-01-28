@@ -91,10 +91,8 @@ int end_partial_decrypt(aes_context *ctx, char * data, int offset, uint8_t * key
 //////////////// Start Partial Encrypting with CBC mode ////
 int start_partial_encrypt(aes_context * ctx, char * data, uint8_t * key, const void * iv, size_t len){
   *ctx = aes192_cbc_enc_start(key,iv);
-  Serial.println("inside start partial");
-  Serial.println(data);
- // aes192_cbc_enc_continue(*ctx, data, len);
-  Serial.println("inside start partial");
+  aes192_cbc_enc_continue(*ctx, data, len);
+
 }
 
 int continue_partial_encrypt(aes_context *ctx, char * data, int offset, uint8_t * key, size_t len){
@@ -246,7 +244,7 @@ int encrypt_toc(struct Message * m){
   toc_read = read_toc(m, toc);
   Serial.println(toc_read);
   read_pos += toc_read;
-  while (toc_read == 128) {
+  while (toc_read == 32) {
     Serial.println("Loop");
     continue_partial_encrypt(&ctx, m->message, 0, key, toc_read);
     toc.close();
@@ -283,7 +281,7 @@ int write_toc(struct Message *m, File f)
 //T is first decrypted block of TOC
 int decrypt_toc(struct Message * m){
 
-  File f = SD.open(T_OF_C, FILE_READ);
+  File f = SD.open("TESTTOCO", FILE_READ);
   if (!f) {
     Serial.println("Shits fucked");
     return -1;
@@ -293,20 +291,34 @@ int decrypt_toc(struct Message * m){
   memcpy(key, m->message, 24);
   int toc_read = read_toc(m, f);
   m->type = 'T';
-
+  int i;
   aes_context ctx;
   start_partial_decrypt(&ctx, m->message, key, iv, toc_read);
+ /* Serial.println("Printing Start Partial");
+  for (i = 0; i < toc_read; i++){
+    Serial.print(m->message[i]);
+  }
+  Serial.println(" ");*/
   send_message(m);
   m->type = 't';
   while (toc_read > 0) {
     toc_read = read_toc(m, f);
     continue_partial_decrypt(&ctx, m->message, 0, key, toc_read);
+    /*Serial.println("Printing Continue Partial");
+    for (i = 0; i < toc_read; i++){
+      Serial.print(m->message[i]);
+    }
+    Serial.println(" ");*/
     send_message(m);
   }
 
-
   send_message(m);
   end_partial_decrypt(&ctx, m->message, 0, key, toc_read);
+  /*Serial.println("Printing end partial");
+  for (i = 0; i < toc_read; i++){
+    Serial.print(m->message[i]);
+  }
+  Serial.println(" ");*/
   // Decrypt first block here
  
 }
@@ -316,12 +328,12 @@ int decrypt_toc(struct Message * m){
 int read_toc(struct Message *m, File f)
 {
   if (!m->message) {
-    m->message = malloc(128);
+    m->message = malloc(32);
   }
 
   m->length.length = 0;
 
-  while (f.available() && m->length.length < 128) {
+  while (f.available() && m->length.length < 32) {
     m->message[m->length.length++] = f.read();
   }
 
@@ -529,8 +541,8 @@ void loop() {
     // master_key_m.message is now the key that can decrypt the toc. This key still has padding.
     decrypt_all(master_key_m.message, master_pass, iv, 32);
     Serial.println("About to encrypt TOC");
-    //decrypt_toc(&master_key_m);
-   encrypt_toc(&master_key_m);
+   //encrypt_toc(&master_key_m);
+   decrypt_toc(&master_key_m);
    done = true;
   }
   if (master_pass && master_aes) {
