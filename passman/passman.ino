@@ -37,47 +37,98 @@
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(32, PIN, NEO_GRB + NEO_KHZ800);
 
-char iv[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
 char once = 1;
 aes_context ctx;
 
-char * encrypt(char * data, uint8_t * key, size_t * len){
+char * encrypt_all(char * data, uint8_t * key, const void * iv, size_t * len){
   ctx = aes128_cbc_enc_start(key,iv);
   *len = strlen(data);
-  char pad = *len % 16;
+  Serial.println(*len);
+  int pad = *len % 16;
+  pad = 16 - pad;
+  Serial.println(pad);
   if (pad == 0)
     pad = 16;
   *len = *len + pad;
-  char * cipherText = malloc(sizeof(char) * *len);
+  Serial.println(*len);
+  char * cipherText = malloc(sizeof(char) * (*len));
   memset(cipherText, 0, *len);
-  memcpy(cipherText, data, *len);
+  memcpy(cipherText, data, strlen(data));
+  int i;
+  for (i = 0; i < *len; i++){
+    Serial.print(i);
+    Serial.print(": ");
+    Serial.print(cipherText[i], DEC);
+    Serial.println(" ");
+  }
   aes128_cbc_enc_continue(ctx, cipherText, *len);
   aes128_cbc_enc_finish(ctx);
   return cipherText;
 }
 
-int decrypt(char * data, uint8_t * key, size_t len){
-  ctx = aes128_cbc_dec_start(key,iv);
-  aes128_cbc_dec_continue(ctx, data, len);
-  aes128_cbc_dec_finish(ctx);
+
+// Start Partial Decrypting with CBC mode /////
+int start_partial_decrypt(aes_context * ctx, char * data, uint8_t * key, const void * iv, size_t len){
+  *ctx = aes128_cbc_dec_start(key,iv);
+  aes128_cbc_dec_continue(*ctx, data, len);
+}
+
+int continue_partial_decrypt(aes_context *ctx, char * data, uint8_t * key, size_t len){
+  aes128_cbc_dec_continue(*ctx, data, len);
+}
+
+int end_partial_decrypt(aes_context *ctx, char * data, uint8_t * key, size_t len){
+  aes128_cbc_dec_continue(*ctx, data, len);
+  aes128_cbc_dec_finish(*ctx);
+}
+
+
+// Start Partial Encrypting with CBC mode ////
+int start_partial_encrypt(aes_context * ctx, char * data, uint8_t * key, const void * iv, size_t len){
+  *ctx = aes128_cbc_dec_start(key,iv);
+  aes128_cbc_dec_continue(*ctx, data, len);
+}
+
+int continue_partial_encrypt(aes_context *ctx, char * data, uint8_t * key, size_t len){
+  aes128_cbc_dec_continue(*ctx, data, len);
+}
+
+int end_partial_encrypt(aes_context *ctx, char * data, uint8_t * key, size_t len){
+  aes128_cbc_dec_continue(*ctx, data, len);
+  aes128_cbc_dec_finish(*ctx);
 }
 
 int crypto_test(){
-    Serial.print("Plaintext: ");
-    uint8_t key[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
-    char * data2 = malloc(sizeof(char) * 33);
-    strcpy(data2, "123 456 789 123 456 789 123 456"); 
-    Serial.println(data2);
-    int newLen;
-    char * newData = encrypt(data2, key, &newLen);
+  //uint8_t key[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
+  //uint8_t key[] = {0,1,2,3,4,5};
+  char iv[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
+  uint8_t * key = "Apples";
+  char * data2 = malloc(sizeof(char) * 200);
+  strcpy(data2, "This is some test data to encypt, lets see what happens here. This is a large me, man"); 
+  Serial.print("Plaintext: ");
+  Serial.println(data2);
+  int newLen;
+  char * newData = encrypt_all(data2, key, iv, &newLen);
+  Serial.println(newLen);
+  Serial.print("encrypted:");
+  Serial.println(newData);
 
-    Serial.print("encrypted:");
-    Serial.println(newData);
+  aes_context ctx;
+  size_t step = 16;
+  start_partial_decrypt(&ctx, newData, key, iv, step);
+  newData += step;
+  int i = 1;
+  while ( (i*step) < (newLen-step)){
+    continue_partial_decrypt(&ctx, newData, key, step);
+    newData += step;
+    i++;
+    Serial.println(i);
+    Serial.print(" ");
+  }
+  end_partial_decrypt(&ctx, newData, key, step);
   
-    decrypt(newData, key, 32);
-    Serial.print("decrypted:");
-    Serial.println(data2);
-    Serial.println(71 % 16);
+  Serial.print("decrypted:");
+  Serial.println(newData-80);
 }
 
 void setup() {
