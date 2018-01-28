@@ -12,8 +12,16 @@
 #define MASTER_KEY      "MASTRKEY.txt"
 #define T_OF_C          "TABLECOL.txt"
 
+#define KEY_SHAPE       0x06A9F906
+                        //00000110 10101001 11111001 00000110
+
+enum led_state {NONE, BLINK_KEY, PAUSE};
+enum led_state led_state = NONE;
+
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(32, PIN, NEO_GRB + NEO_KHZ800);
 
+#define MAX_BRIGHT 10
+#define MIN_BRIGHT -5
 
 struct  Message{
   char type;
@@ -140,51 +148,105 @@ void recv_message(struct Message *m) {
   Serial.print("hello");
 }
 
-void setup() {
-  // put your setup code here, to run once:
-  Serial.begin(9600);
-  while (!Serial);  // busy spinning while Serial starts
+void update_led()
+{
+  static enum led_state last_state = NONE;
+  static int brightness = 1;
+  static bool brighten = true;
+  if (last_state != led_state) {
+    // need to initialize the new state
+    switch (led_state) {
+      case BLINK_KEY:
+        brightness = 1;
+        brighten = true;
+    }
+  }
 
-  if (!SD.begin(CS)) {
-    Serial.println("SD card says no");
+  last_state = led_state;
+
+  if (led_state == PAUSE) {
     return;
   }
 
-  Serial.println("Setup complete!");
+  if (led_state == BLINK_KEY) {
+    Serial.println(brighten);
+    for (int i = 0; i < 32; ++i) {
+      if ((KEY_SHAPE >> i) & 1) {
+        strip.setPixelColor(i, strip.Color(255 / MAX_BRIGHT * max(1, brightness), 0, 0));
+      }
+    }
+    
+    if (brighten) {
+      strip.setBrightness(max(brightness, 1));
+      brightness++;
+      brighten = (brightness != MAX_BRIGHT);
+    } else {
+      strip.setBrightness(max(brightness, 1));
+      brightness--;
+      brighten = (brightness == MIN_BRIGHT);
+    }
+  }
+
+  strip.show();
+}
+
+void setup() {
+  // put your setup code here, to run once:
+  Serial.begin(9600);
+  //while (!Serial);  // busy spinning while Serial starts
+//
+//  if (!SD.begin(CS)) {
+//    Serial.println("SD card says no");
+//    return;
+//  }
+//
+//  Serial.println("Setup complete!");
+
+  strip.begin();
+  strip.show();
+
+  //Serial.println(strip.Color(0, 255, 0));
+
+  led_state = BLINK_KEY;
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-  struct Message master_key;
-  if (!read_mkey(&master_key)) {
-    Serial.println("Can't read master key!");
-    return;
-  }
-  
-  Serial.println(master_key.message);
-  Serial.println(master_key.length);
-  
-  free(master_key.message);
+//  struct Message master_key;
+//  if (!read_mkey(&master_key)) {
+//    Serial.println("Can't read master key!");
+//    return;
+//  }
+//  
+//  Serial.println(master_key.message);
+//  Serial.println(master_key.length);
+//  
+//  free(master_key.message);
+//
+//  struct Message toc = {0};
+//  File toc_f = SD.open(T_OF_C, FILE_READ);
+//  if (!toc_f) {
+//    Serial.println("Can't read table of contents");
+//    return;
+//  }
+//  
+//  while (read_toc(&toc, toc_f) > 0) {
+//    for (int i = 0; i < toc.length; ++i) {
+//      Serial.print(toc.message[i]);
+//    }
+//  }
+//
+//  Serial.println("");
+//
+//  toc_f.close();
+//
+//  free(toc.message);
 
-  struct Message toc = {0};
-  File toc_f = SD.open(T_OF_C, FILE_READ);
-  if (!toc_f) {
-    Serial.println("Can't read table of contents");
-    return;
-  }
-  
-  while (read_toc(&toc, toc_f) > 0) {
-    for (int i = 0; i < toc.length; ++i) {
-      Serial.print(toc.message[i]);
-    }
-  }
+//  for (int i = 0; i < strip.numPixels(); ++i) {
+//    strip.setPixelColor(i, strip.Color(0, 255, 0));
+//  }
 
-  Serial.println("");
-
-  toc_f.close();
-
-  free(toc.message);
-
-  delay(1000);
+  update_led();
+  delay(50);
 }
 
