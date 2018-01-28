@@ -42,6 +42,44 @@ struct Message *read_mkey(struct Message *m)
   return m;
 }
 
+struct Message *read_index(struct Message *m, int index, char type)
+{
+  char filename[10];
+  sprintf(filename, "%c%d", type, index);
+
+  File f = SD.open(filename, FILE_READ);
+  if (!f) {
+    return NULL;
+  }
+
+  m->type = type;
+  m->length = 0;
+  m->message = malloc(33);
+  while (f.available() && m->length <= 32) {
+    m->message[m->length++] = f.read();
+  }
+
+  f.close();
+
+  return m;
+}
+
+// Returns number of bytes read
+int read_toc(struct Message *m, File f)
+{
+  if (!m->message) {
+    m->message = malloc(128);
+  }
+
+  m->length = 0;
+
+  while (f.available() && m->length <= 128) {
+    m->message[m->length++] = f.read();
+  }
+
+  return m->length;
+}
+
 void send_message(struct Message *m) {
 
   Serial.print(m->type);
@@ -120,17 +158,33 @@ void loop() {
   struct Message master_key;
   if (!read_mkey(&master_key)) {
     Serial.println("Can't read master key!");
-  } else {
-    Serial.println(master_key.message);
-    Serial.println(master_key.length);
+    return;
   }
+  
+  Serial.println(master_key.message);
+  Serial.println(master_key.length);
+  
+  free(master_key.message);
+
+  struct Message toc = {0};
+  File toc_f = SD.open(T_OF_C, FILE_READ);
+  if (!toc_f) {
+    Serial.println("Can't read table of contents");
+    return;
+  }
+  
+  while (read_toc(&toc, toc_f) > 0) {
+    for (int i = 0; i < toc.length; ++i) {
+      Serial.print(toc.message[i]);
+    }
+  }
+
+  Serial.println("");
+
+  toc_f.close();
+
+  free(toc.message);
 
   delay(1000);
 }
-
-
-
-//0000001 input
-//return struct pointer (type message) : length and pointer to data
-
 
