@@ -7,7 +7,7 @@ import threading
 
 BAUD_RATE = 9600
 KEY_LENGTH = 24
-global Connected, Unlocked, UnlockLock, gser
+global Connected, Unlocked, UnlockLock, gser, Table_of_Contents
 Connected = False
 Unlocked = False
 UnlockLock = False
@@ -63,19 +63,32 @@ def get_message(ser):
     # type = ser.read(1)
     # for i in range(3):
     #     print(ser.read(1))
-    try:
-        by = ser.read(3)
-    except:
-        gser = init()
+    # try:
+    #     by = ser.read(3)
+    # except:
+    #     gser = init()
+    by = ser.read(3)
 
     # print(by)
     type, length = struct.unpack("<ch", by)
     if length > 0:
-        message = ser.read(length).decode("ascii")
+
+        message = ser.read(length)
+        m = []
+        for b in [bytes([by]) for by in message]:
+            # print(b, b.decode("ascii"))
+            try:
+                m.append(b.decode("ascii"))
+            except:
+                m = []
+                break
+        # message = ser.read(length)
+        mess = "".join(m)
+
     else:
-        message = None
+        mess = None
     # print(type, message)
-    return (type.decode('ascii'), message)
+    return (type.decode('ascii'), mess)
     # if type.decode("ascii") == "m":
     #     # length = int.from_bytes(ser.read(2), byteorder='big')
     #     print(type, length)
@@ -95,19 +108,26 @@ def send_message(ser, type, message):
     print(string)
 
 def handle_message(ser, type, message):
-    global UnlockLock
+    global UnlockLock, Table_of_Contents
     if type == "K":
         print("Please Enter Master Password: ", end='')
         master_pass = input()
         if len(master_pass) < KEY_LENGTH:
             send_message(ser, "K", master_pass)
     elif type == "T":
-        Table_of_Contents = message
+        Table_of_Contents += message
+        # print(message)
     elif type == "t":
+        # print(message)
+
         if message is not None:
-            Table_of_Contents += message
+            # print("her???")
+            Table_of_Contents = Table_of_Contents + message
+            # print(len(Table_of_Contents), len(message))
         else:
-            UnlockLock = False
+            # print("we het here", len(Table_of_Contents))
+            UnlockLock = True
+            print(Table_of_Contents)
     elif type == "D":
         print("ADA ECHOED:", message)
 
