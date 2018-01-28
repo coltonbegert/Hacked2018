@@ -397,7 +397,7 @@ void handle_message(struct Message *m) {
       master_pass_length = m->length.length;
       master_pass = malloc(24);
       memcpy(master_pass, m->message, master_pass_length);
-      strncpy(master_pass+ master_pass_length, PASSWORD_SALT, 24-master_pass_length)
+      strncpy(master_pass+ master_pass_length, PASSWORD_SALT, 24-master_pass_length);
       break;
     case 'P':
       char fileName[9];
