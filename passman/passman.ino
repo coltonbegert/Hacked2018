@@ -209,7 +209,7 @@ struct Message *read_index(struct Message *m, int index, char type)
 //T is first decrypted block of TOC
 int encrypt_toc(struct Message * m){
   int read_pos = 0;
-
+  SD.remove("TESTTOCO");
   File toc = SD.open(T_OF_C, FILE_READ);
 
   if (!toc) {
@@ -515,7 +515,7 @@ void setup() {
 
   led_state = BLINK_RED_KEY;
   
-  // request_master_pass();
+  request_master_pass();
   // master_pass = "password123BigColtonAndB";
   // master_pass = "password123";
   // Serial.println("Setup complete!");
