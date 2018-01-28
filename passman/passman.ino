@@ -51,32 +51,6 @@ int encrypt_all(char * data, uint8_t * key, const void * iv, size_t len){
   return 0;
 }
 
-/*
-char * encrypt_all(char * data, uint8_t * key, const void * iv, size_t * len){
-  *len = strlen(data);
-  Serial.println(*len);
-  int pad = *len % 16;
-  pad = 16 - pad;
-  Serial.println(pad);
-  if (pad == 0)
-    pad = 16;
-  *len = *len + pad;
-  Serial.println(*len);
-  char * cipherText = malloc(sizeof(char) * (*len));
-  memset(cipherText, 0, *len);
-  memcpy(cipherText, data, strlen(data));
-  int i;
-  for (i = 0; i < *len; i++){
-    Serial.print(i);
-    Serial.print(": ");
-    Serial.print(cipherText[i], DEC);
-    Serial.println(" ");
-  }
-  aes192_cbc_enc(key, iv, cipherText, *len);
-  return cipherText;
-}
-*/
-
 //////////////// Start Partial Decrypting with CBC mode /////
 int start_partial_decrypt(aes_context * ctx, char * data, uint8_t * key, const void * iv, size_t len){
   *ctx = aes192_cbc_dec_start(key,iv);
@@ -100,61 +74,21 @@ int start_partial_encrypt(aes_context * ctx, char * data, uint8_t * key, const v
 }
 
 int continue_partial_encrypt(aes_context *ctx, char * data, int offset, uint8_t * key, size_t len){
- // aes192_cbc_enc_continue(*ctx, data+offset, len);
+  aes192_cbc_enc_continue(*ctx, data+offset, len);
 }
 
-int end_partial_encrypt(aes_context *ctx, char * data, char * offest, uint8_t * key, size_t len){
-  int pad = len % 16;
-  pad = 16 - pad;
-  Serial.println(pad);
-  if (pad == 0)
-    pad = 16;
-  len = len + pad;
-  aes192_cbc_enc_continue(*ctx, data, len);
+int end_partial_encrypt(aes_context *ctx, char * data, int offset, uint8_t * key, size_t len){
+  int total = ((len / 16) + 1) * 16;
+  memset(data+offset+len, 0, total-len); 
+  aes192_cbc_enc_continue(*ctx, data+offset, total);
   aes192_cbc_enc_finish(*ctx);
 }
 
 int crypto_test(){
   
   char iv[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23};
-  uint8_t * key = "ApplesAndBananas12345678jggjgjgjgjjgjgjgjg";
-  char * data2 = malloc(sizeof(char) * 200);
-  strcpy(data2, "This is some test data to encypt, lets see what happens here. This is a large me123456789012345"); 
-  Serial.print("Plaintext: ");
-  Serial.println(data2);
-  int newLen;
-  aes_context ctx;
-  //char * newData = encrypt_all(data2, key, iv, &newLen);
-  char * newData = malloc(200);
-  strcpy(newData, data2);
-  newLen = strlen(newData);
-  encrypt_all(newData, key, iv, newLen);
-  //start_partial_encrypt(&ctx, newData, key, iv, 24);
-  //continue_partial_encrypt(&ctx, newData+24, key, 24);
-  //continue_partial_encrypt(&ctx, newData+48, key, 24);
-  //end_partial_encrypt(&ctx, newData+72, key, 23);
-  Serial.println(newLen);
-  Serial.print("encrypted:");
-  Serial.println(newData);
+  uint8_t * key = "ApplesAndBananas12";
 
-  size_t step = 16;
-  /*
-  start_partial_decrypt(&ctx, newData, key, iv, step);
-  newData += step;
-  int i = 1;
-  while ( (i*step) < (newLen-step)){
-    continue_partial_decrypt(&ctx, newData, key, step);
-    newData += step;
-    i++;
-    Serial.println(i);
-    Serial.print(" ");
-  }
-  end_partial_decrypt(&ctx, newData, key, step);
-  */
-  Serial.println(newLen);
-  decrypt_all(newData, key, iv, 96);
-  Serial.print("decrypted:");
-  Serial.println(newData);
 }
 
 void setup() {
