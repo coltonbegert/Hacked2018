@@ -3,7 +3,11 @@
 
 <head>
     <title>Pass Man</title>
+    <script src="ajax.js"></script>
+    <script src="list.js"></script>
     <script src="popup.js"></script>
+    
+
     <link rel="stylesheet" href="styles.css">
 </head>
 
@@ -13,12 +17,33 @@
     </div>
     
     <div id="connected" class="connectedDiv">
-        <input id="password" type="password">
-        <button id="connectbtn">connect</button>
+        <input id="password" type="password" placeholder="Master Password">
+        <button id="connectbtn" class="sort">connect</button>
     </div>
     
     <div class="autofilldiv" id="autofilldiv">
-        <button id="autofill">autofill</button> 
+        <button id="autofill" class="sort">autofill</button> 
+    </div>
+
+    <div id="users">
+        <button id="manage" class="sort">Manage</button>
+        
+        
+        <!-- <input class="search" placeholder="Search" /> -->
+        <!-- <button class="sort" data-sort="name">
+            Sort by name
+        </button> -->
+        <div class="listdiv" id="listdiv">
+            <button id="add-btn" class="input">Add</button>
+            <div class="adddiv" id="adddiv">
+        <input id="add-username" placeholder="Username">
+        <input id="add-password" type="password" placeholder="Password">
+        <input id="add-website" placeholder="Website URL">
+        <button id="add-submit" class="addsubmit">Submit</button>
+            </div>
+            <ul class="list"></ul>
+        </div>
+
     </div>
 </body>
 

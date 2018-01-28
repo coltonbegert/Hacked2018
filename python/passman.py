@@ -137,10 +137,12 @@ def passman_isUnlocked():
     return Unlocked
 
 def passman_attemptUnlock(password):
-    global UnlockLock, gser
+    global UnlockLock, gser, Unlocked
     # UnlockLock = True
     send_message(gser, "K", password)
     print("attempted unclok")
+    # Unlocked = True
+
     # while UnlockLock:
     #     time.sleep(0.1)
 
