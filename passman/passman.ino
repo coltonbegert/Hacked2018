@@ -60,6 +60,7 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(32, PIN, NEO_GRB + NEO_KHZ800);
 char once = 1;
 aes_context ctx;
 static char iv[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23};
+bool done = false;
 
 int decrypt_all(char * data, uint8_t * key, const void * iv, size_t len){
   aes192_cbc_dec(key, iv, data, len);
@@ -90,7 +91,10 @@ int end_partial_decrypt(aes_context *ctx, char * data, int offset, uint8_t * key
 //////////////// Start Partial Encrypting with CBC mode ////
 int start_partial_encrypt(aes_context * ctx, char * data, uint8_t * key, const void * iv, size_t len){
   *ctx = aes192_cbc_enc_start(key,iv);
-  aes192_cbc_enc_continue(*ctx, data, len);
+  Serial.println("inside start partial");
+  Serial.println(data);
+ // aes192_cbc_enc_continue(*ctx, data, len);
+  Serial.println("inside start partial");
 }
 
 int continue_partial_encrypt(aes_context *ctx, char * data, int offset, uint8_t * key, size_t len){
@@ -199,6 +203,115 @@ struct Message *read_index(struct Message *m, int index, char type)
   return m;
 }
 
+//T is first decrypted block of TOC
+int encrypt_toc(struct Message * m){
+  int read_pos = 0;
+
+  File toc = SD.open(T_OF_C, FILE_READ);
+
+  if (!toc) {
+    Serial.println("Shits fucked");
+    return -1;
+  }
+
+  char key[24];
+  memcpy(key, m->message, 24);
+  Serial.println(key);
+    int k;
+  for (k = 0; k < 24; k++){
+    Serial.print(key[k], DEC);
+    Serial.println(" ");
+  }
+  aes_context ctx;
+  int toc_read = read_toc(m, toc);
+  read_pos += toc_read;
+  Serial.println(read_pos);
+  toc.close();
+  File f = SD.open("TESTTOCO", FILE_WRITE);
+  if (!f) {
+    Serial.println("Failed to open f");
+  }
+  Serial.println("Starting encrypt");
+  Serial.println(m->message);
+  start_partial_encrypt(&ctx, m->message, key, iv, toc_read);
+
+  Serial.println("Done encrypt");
+  int toc_written = write_toc(m, f);
+  f.close();
+
+  toc = SD.open(T_OF_C, FILE_READ);
+  Serial.println("About to seek");
+  toc.seek(read_pos);
+
+  toc_read = read_toc(m, toc);
+  Serial.println(toc_read);
+  read_pos += toc_read;
+  while (toc_read == 128) {
+    Serial.println("Loop");
+    continue_partial_encrypt(&ctx, m->message, 0, key, toc_read);
+    toc.close();
+    f = SD.open("TESTTOCO", FILE_WRITE);
+    toc_written = write_toc(m, f);
+    f.close();
+
+    toc = SD.open(T_OF_C, FILE_READ);
+    toc.seek(read_pos);
+    toc_read = read_toc(m, toc);
+    read_pos += toc_read;
+  }
+  toc.close();
+  f = SD.open("TESTTOCO", FILE_WRITE);
+  end_partial_encrypt(&ctx, m->message, 0, key, toc_read);
+  write_toc(m, f);
+
+  f.close();
+  Serial.println(read_pos);
+  return 0;
+  // Decrypt first block here
+ 
+}
+
+int write_toc(struct Message *m, File f)
+{
+  for (int i = 0; i < m->length.length; ++i) {
+    f.write(m->message[i]);
+  }
+  Serial.println("Wrote to TOC");
+  return m->length.length;
+}
+
+//T is first decrypted block of TOC
+int decrypt_toc(struct Message * m){
+
+  File f = SD.open(T_OF_C, FILE_READ);
+  if (!f) {
+    Serial.println("Shits fucked");
+    return -1;
+  }
+
+  char key[24];
+  memcpy(key, m->message, 24);
+  int toc_read = read_toc(m, f);
+  m->type = 'T';
+
+  aes_context ctx;
+  start_partial_decrypt(&ctx, m->message, key, iv, toc_read);
+  send_message(m);
+  m->type = 't';
+  while (toc_read > 0) {
+    toc_read = read_toc(m, f);
+    continue_partial_decrypt(&ctx, m->message, 0, key, toc_read);
+    send_message(m);
+  }
+
+
+  send_message(m);
+  end_partial_decrypt(&ctx, m->message, 0, key, toc_read);
+  // Decrypt first block here
+ 
+}
+
+
 // Returns number of bytes read
 int read_toc(struct Message *m, File f)
 {
@@ -208,7 +321,7 @@ int read_toc(struct Message *m, File f)
 
   m->length.length = 0;
 
-  while (f.available() && m->length.length <= 128) {
+  while (f.available() && m->length.length < 128) {
     m->message[m->length.length++] = f.read();
   }
 
@@ -403,7 +516,7 @@ void loop() {
     strip.show();
   }
 
-  if (master_pass && !master_aes) {
+  if (master_pass && !master_aes && !done) {
     if (strlen(master_pass) < 24) {
       strncpy(master_pass + strlen(master_pass), PASSWORD_SALT, 24 - strlen(master_pass));
     }
@@ -413,11 +526,12 @@ void loop() {
       return;
     }
 
+    // master_key_m.message is now the key that can decrypt the toc. This key still has padding.
     decrypt_all(master_key_m.message, master_pass, iv, 32);
-
-    Serial.println(master_key_m.message);
-
-    free(master_key_m.message);
+    Serial.println("About to encrypt TOC");
+    //decrypt_toc(&master_key_m);
+   encrypt_toc(&master_key_m);
+   done = true;
   }
   if (master_pass && master_aes) {
     strip.setPixelColor(2, 0, 255, 0);
@@ -462,6 +576,7 @@ void loop() {
   update_led();
   delay(50);
 }
+
 
 
 
