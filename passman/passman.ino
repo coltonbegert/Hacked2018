@@ -15,7 +15,7 @@
 #define KEY_SHAPE       0x06A9F906
                         //00000110 10101001 11111001 00000110
 
-enum led_state {NONE, BLINK_KEY, PAUSE};
+enum led_state {NONE, BLINK_RED_KEY, ORANGE_KEY, PAUSE};
 enum led_state led_state = NONE;
 
 #define MAX_BRIGHT 10
@@ -175,19 +175,19 @@ void update_led()
   if (last_state != led_state) {
     // need to initialize the new state
     switch (led_state) {
-      case BLINK_KEY:
+      case BLINK_RED_KEY:
         brightness = 1;
         brighten = true;
     }
   }
 
-    last_state = led_state;
+  last_state = led_state;
 
   if (led_state == PAUSE) {
     return;
   }
 
-  if (led_state == BLINK_KEY) {
+  if (led_state == BLINK_RED_KEY) {
     for (int i = 0; i < 32; ++i) {
       if ((KEY_SHAPE >> i) & 1) {
         strip.setPixelColor(i, strip.Color(255 / MAX_BRIGHT * max(1, brightness), 0, 0));
@@ -203,6 +203,15 @@ void update_led()
       brightness--;
       brighten = (brightness == MIN_BRIGHT);
     }
+  }
+
+  if (led_state == ORANGE_KEY) {
+    for (int i = 0; i < 32; ++i) {
+      if ((KEY_SHAPE >> i) & 1) {
+        strip.setPixelColor(i, strip.Color(255, 100, 0));
+      }
+    }
+    strip.setBrightness(2);
   }
 
   strip.show();
@@ -225,7 +234,7 @@ void setup() {
   master_pass = NULL;
   master_aes = NULL;
 
-  led_state = BLINK_KEY;
+  led_state = BLINK_RED_KEY;
   
   request_master_pass();
   // Serial.println("Setup complete!");
