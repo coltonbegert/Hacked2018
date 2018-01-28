@@ -368,8 +368,21 @@ void handle_message(struct Message *m) {
   switch (m->type) {
     case 'K':
       master_pass_length = m->length.length;
-      master_pass = malloc(master_pass_length);
+      master_pass = malloc(24);
       memcpy(master_pass, m->message, master_pass_length);
+      strncpy(master_pass+ master_pass_length, PASSWORD_SALT, 24-master_pass_length);
+      // char *hpass;
+      // hpass= "password123";
+      // strncpy(hpass + strlen(hpass), PASSWORD_SALT, 24 - strlen(hpass));
+      // for (int i =0; i < 24; i++) {
+      //   if (hpass[i] == master_pass[i]) {
+      //     strip.setPixelColor(i, 0,255,0);
+      //   } else {
+      //     strip.setPixelColor(i, 255, 0, 0);
+      //   }
+      // }
+      // strip.show();
+      // delay(100);
 
       break;
     default:
@@ -528,10 +541,10 @@ void loop() {
   }
 
   if (master_pass && !master_aes) {
-    if (strlen(master_pass) < 24 || master_pass_length < 24) {
-      master_pass[master_pass_length+1] = 0;
-      strncpy(master_pass + strlen(master_pass), PASSWORD_SALT, 24 - strlen(master_pass));
-    }
+    // if (strlen(master_pass) < 24 || master_pass_length < 24) {
+    //   // master_pass[master_pass_length+1] = 0;
+    //   strncpy(master_pass + strlen(master_pass), PASSWORD_SALT, 24 - strlen(master_pass));
+    // }
     
     struct Message master_key_m;
     if (!read_mkey(&master_key_m)) {
