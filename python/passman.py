@@ -130,13 +130,13 @@ def handle_message(ser, type, message):
             # print("we het here", len(Table_of_Contents))
             # TOC_JSON = "[{"
             rr = []
-            toc = Table_of_Contents[:-3]
+            # toc = Table_of_Contents[:-3]
             print(toc)
             for row in toc.split('\n'):
                 # print(row)
                 r = row.split(',')
                 try:
-                    rr.append('"id":"%s","website":"%s","username":"%s","password":"%s"' % (r[0], r[1], r[2], r[3]))
+                    rr.append('"id":"%s","website":"%s","username":"%s","password":"%s"' % (r[0], r[1], r[2]))
                 except:
                     continue
                     # continue

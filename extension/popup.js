@@ -72,8 +72,8 @@ document.addEventListener("DOMContentLoaded", function (event) {
         console.log(JSON.parse(json))
 
         var options = {
-            valueNames: ['website', 'username', "id", "password"],
-            item: '<li class="listitm"><h3 class="website"></h3><p class="username"></p><button class="remove-item-btn">Delete</button><p class="id" style="display:none;">id</p><p class="password" style="display:none;">password</p></li>'
+            valueNames: ['website', 'username', "id"],
+            item: '<li class="listitm"><h3 class="website"></h3><p class="username"></p><button class="remove-item-btn">Delete</button><p class="id" style="display:none;">id</p></li>'
         };
         var userList = new List('users', options, JSON.parse(json));
 
