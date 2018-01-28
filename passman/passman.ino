@@ -60,6 +60,7 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(32, PIN, NEO_GRB + NEO_KHZ800);
 char once = 1;
 aes_context ctx;
 static char iv[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23};
+bool done = false;
 
 int decrypt_all(char * data, uint8_t * key, const void * iv, size_t len){
   aes192_cbc_dec(key, iv, data, len);
@@ -364,13 +365,45 @@ void recv_message(struct Message *m) {
   }
   
 }
+
+int get_password(char * keyFile){
+  File f = SD.open(keyFile, FILE_READ);
+  int i;
+  char key[32];
+  char pass[32];
+  for (i = 0; i < 32; i++){
+    key[i] = f.read();
+  }
+  decrypt_all(key,master_aes,iv,32);
+  f.close();
+  keyFile[0] = 'P';
+  f = SD.open(keyFile, FILE_READ);
+  for (i = 0; i < 32; i++){
+    pass[i] = f.read();
+  }
+  key[24] = 0;
+  decrypt_all(pass, key, iv, 16);
+  struct Message m;
+  m.type = 'P';
+  m.length.length = 16;
+  m.message = malloc(sizeof(char) * 16);
+  send_message(&m);
+  return 0;
+}
+
 void handle_message(struct Message *m) {
   switch (m->type) {
     case 'K':
       master_pass_length = m->length.length;
       master_pass = malloc(master_pass_length);
       memcpy(master_pass, m->message, master_pass_length);
-
+      break;
+    case 'P':
+      char fileName[9];
+      fileName[7] = 0;
+      memcpy(fileName, m->message, m->length.length);
+      sprintf(fileName,"K%07d", atoi(fileName));
+      get_password(fileName);
       break;
     default:
 
@@ -496,6 +529,7 @@ void setup() {
   
   //request_master_pass();
   master_pass = "password123";
+  
   // Serial.println("Setup complete!");
 
 }
@@ -507,7 +541,7 @@ void loop() {
   me = malloc(sizeof(struct Message));
   me->message = NULL;
 
-
+  
   if (Serial.available() >= 3) {
     recv_message(me);
     handle_message(me);
@@ -527,7 +561,7 @@ void loop() {
     strip.show();
   }
 
-  if (master_pass && !master_aes) {
+  if (master_pass && !master_aes && !done) {
     if (strlen(master_pass) < 24) {
       strncpy(master_pass + strlen(master_pass), PASSWORD_SALT, 24 - strlen(master_pass));
     }
@@ -541,14 +575,48 @@ void loop() {
     decrypt_all(master_key_m.message, master_pass, iv, 32);
     Serial.println("About to encrypt TOC");
    //encrypt_toc(&master_key_m);
-   decrypt_toc(&master_key_m);
-   master_aes = 1;
+   //decrypt_toc(&master_key_m);
+   done = true;
   }
   if (master_pass && master_aes) {
     strip.setPixelColor(2, 0, 255, 0);
     strip.show();
     Serial.println(master_pass);
   }
+
+  // if (!master_pass) {
+  //   request_master_pass();
+  // }
+
+  // struct Message master_key;
+  // if (!read_mkey(&master_key)) {
+  //   Serial.println("Can't read master key!");
+  //   return;
+  // }
+  
+  // Serial.println(master_key.message);
+  // Serial.println(master_key.length);
+  
+  // free(master_key.message);
+
+  // struct Message toc = {0};
+  // File toc_f = SD.open(T_OF_C, FILE_READ);
+  // if (!toc_f) {
+  //   Serial.println("Can't read table of contents");
+  //   return;
+  // }
+  
+  // while (read_toc(&toc, toc_f) > 0) {
+  //   for (int i = 0; i < toc.length; ++i) {
+  //     Serial.print(toc.message[i]);
+  //   }
+  // }
+
+  // Serial.println("");
+
+  // toc_f.close();
+
+  // free(toc.message);
 
   update_led();
   delay(50);
