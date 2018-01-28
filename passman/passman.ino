@@ -7,6 +7,11 @@
 
 #define PIN 6
 
+#define CS  4     // chip select
+
+#define MASTER_KEY      "MASTRKEY.txt"
+#define T_OF_C          "TABLECOL.txt"
+
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(32, PIN, NEO_GRB + NEO_KHZ800);
 
 
@@ -16,6 +21,26 @@ struct  Message{
   char *message;
 };
 
+// Fills m with master key data
+struct Message *read_mkey(struct Message *m)
+{ 
+  File master_key = SD.open(MASTER_KEY, FILE_READ);
+  if (!master_key) {
+    return NULL;
+  }
+
+  m->type = 'K';
+  m->length = 0;
+  m->message = malloc(33);
+  while (master_key.available() && m->length <= 33) {
+    m->message[m->length++] = master_key.read();
+  }
+  m->message[m->length] = '\0';
+
+  master_key.close();
+
+  return m;
+}
 
 void send_message(struct Message *m) {
 
@@ -78,37 +103,34 @@ void recv_message(struct Message *m) {
 }
 
 void setup() {
-  // put your setup code h¨ere, to run once:
+  // put your setup code here, to run once:
   Serial.begin(9600);
+  while (!Serial);  // busy spinning while Serial starts
 
+  if (!SD.begin(CS)) {
+    Serial.println("SD card says no");
+    return;
+  }
+
+  Serial.println("Setup complete!");
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-  // int incomingByte = 0;
-  // if (Serial.available() > 0)
-  // {
-  //   // read the incoming byte:
-  //   incomingByte = Serial.read();
-
-  //   // say what you got:
-  //   // Serial.print("I received: ");
-  //   Serial.write(incomingByte);
-  // }
-  // Serial.print("test");
-  struct Message m;
-
-  m.type = 0x6d;
-  m.length = 11;
-  m.message = "abcdefghijk";
-  // send_message(m);
-  free(&m);
-  struct Message *me;
-
-  if (Serial.available() >= 3) {
-    recv_message(me);
-
+  struct Message master_key;
+  if (!read_mkey(&master_key)) {
+    Serial.println("Can't read master key!");
+  } else {
+    Serial.println(master_key.message);
+    Serial.println(master_key.length);
   }
 
   delay(1000);
 }
+
+
+
+//0000001 input
+//return struct pointer (type message) : length and pointer to data
+
+
