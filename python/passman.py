@@ -7,13 +7,14 @@ import threading
 
 BAUD_RATE = 9600
 KEY_LENGTH = 24
-global Connected, Unlocked, UnlockLock, gser, Table_of_Contents
+global Connected, Unlocked, UnlockLock, gser, Table_of_Contents, TOC_JSON
 Connected = False
 Unlocked = False
 UnlockLock = False
 
 
 Table_of_Contents = ""
+TOC_JSON = None
 
 def init():
     global Connected
@@ -108,7 +109,7 @@ def send_message(ser, type, message):
     print(string)
 
 def handle_message(ser, type, message):
-    global UnlockLock, Table_of_Contents
+    global Unlocked, Table_of_Contents
     if type == "K":
         print("Please Enter Master Password: ", end='')
         master_pass = input()
@@ -126,8 +127,17 @@ def handle_message(ser, type, message):
             # print(len(Table_of_Contents), len(message))
         else:
             # print("we het here", len(Table_of_Contents))
-            UnlockLock = True
-            print(Table_of_Contents)
+            # TOC_JSON = "[{"
+            rr = []
+            for row in Table_of_Contents.split():
+                r = row.split(',')
+                # print(row)
+                rr.append("id:'%s',website:'%s',username:'%s'" % (r[0], r[1], r[2]))
+            # "},{".join(["id:'%s',username:'%s',website:'%s'"%(row[0], row[2], row[1]) for row.split(',') ])
+            TOC_JSON = "[{" + ('},{').join(rr) +"}]"
+            # print(TOC_JSON)
+            Unlocked = True
+            # print(Table_of_Contents)
     elif type == "D":
         print("ADA ECHOED:", message)
 
@@ -150,6 +160,8 @@ def passman_create():
     # 'P' type message specifies a password retrieval based on table of contents
     # index value
     send_message(ser, "P", "0000001")
+    # print(passman_isConnected())
+
     # while True:
     #     time.sleep(15)
     #     send_message(ser, "m", "keepalive")
@@ -173,6 +185,8 @@ def passman_attemptUnlock(password):
     # while UnlockLock:
     #     time.sleep(0.1)
 
+def passman_toc():
+    return TOC_JSON
 
 def main():
     passman_create()

@@ -15,6 +15,10 @@ def get_connected():
     return jsonify({'msg': passman_isConnected()})
 
 
+@app.route("/api/toc", methods=['GET'])
+def get_toc():
+    return passman_toc()
+
 @app.route("/api/unlocked", methods=['GET', 'OPTIONS'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization'])
 def get_unlocked():
