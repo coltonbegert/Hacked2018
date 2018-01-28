@@ -63,15 +63,18 @@ def get_message(ser):
     # type = ser.read(1)
     # for i in range(3):
     #     print(ser.read(1))
-    try:
-        by = ser.read(3)
-    except:
-        gser = init()
+    # try:
+    #     by = ser.read(3)
+    # except:
+    #     gser = init()
+    by = ser.read(3)
 
     # print(by)
     type, length = struct.unpack("<ch", by)
     if length > 0:
         message = ser.read(length).decode("ascii")
+        # message = ser.read(length)
+
     else:
         message = None
     # print(type, message)
@@ -95,6 +98,7 @@ def send_message(ser, type, message):
     print(string)
 
 def handle_message(ser, type, message):
+    Table_of_Contents = ""
     global UnlockLock
     if type == "K":
         print("Please Enter Master Password: ", end='')
@@ -102,10 +106,14 @@ def handle_message(ser, type, message):
         if len(master_pass) < KEY_LENGTH:
             send_message(ser, "K", master_pass)
     elif type == "T":
-        Table_of_Contents = message
+        # Table_of_Contents = message
+        print(message)
     elif type == "t":
+        print(message)
+
         if message is not None:
-            Table_of_Contents += message
+            # Table_of_Contents += message
+            pass
         else:
             UnlockLock = False
     elif type == "D":
