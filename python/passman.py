@@ -5,7 +5,7 @@ import time
 import threading
 
 BAUD_RATE = 9600
-KEY_LENGTH = 16
+KEY_LENGTH = 24
 global Connected, Unlocked, UnlockLock, gser
 Connected = False
 Unlocked = False
