@@ -60,7 +60,6 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(32, PIN, NEO_GRB + NEO_KHZ800);
 char once = 1;
 aes_context ctx;
 static char iv[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23};
-bool done = false;
 
 int decrypt_all(char * data, uint8_t * key, const void * iv, size_t len){
   aes192_cbc_dec(key, iv, data, len);
@@ -528,7 +527,7 @@ void loop() {
     strip.show();
   }
 
-  if (master_pass && !master_aes && !done) {
+  if (master_pass && !master_aes) {
     if (strlen(master_pass) < 24) {
       strncpy(master_pass + strlen(master_pass), PASSWORD_SALT, 24 - strlen(master_pass));
     }
@@ -543,7 +542,7 @@ void loop() {
     Serial.println("About to encrypt TOC");
    //encrypt_toc(&master_key_m);
    decrypt_toc(&master_key_m);
-   done = true;
+   master_aes = 1;
   }
   if (master_pass && master_aes) {
     strip.setPixelColor(2, 0, 255, 0);
@@ -551,43 +550,10 @@ void loop() {
     Serial.println(master_pass);
   }
 
-  // if (!master_pass) {
-  //   request_master_pass();
-  // }
-
-  // struct Message master_key;
-  // if (!read_mkey(&master_key)) {
-  //   Serial.println("Can't read master key!");
-  //   return;
-  // }
-  
-  // Serial.println(master_key.message);
-  // Serial.println(master_key.length);
-  
-  // free(master_key.message);
-
-  // struct Message toc = {0};
-  // File toc_f = SD.open(T_OF_C, FILE_READ);
-  // if (!toc_f) {
-  //   Serial.println("Can't read table of contents");
-  //   return;
-  // }
-  
-  // while (read_toc(&toc, toc_f) > 0) {
-  //   for (int i = 0; i < toc.length; ++i) {
-  //     Serial.print(toc.message[i]);
-  //   }
-  // }
-
-  // Serial.println("");
-
-  // toc_f.close();
-
-  // free(toc.message);
-
   update_led();
   delay(50);
 }
+
 
 
 
