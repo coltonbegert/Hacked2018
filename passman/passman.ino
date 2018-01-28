@@ -47,7 +47,7 @@
                         //11101010 10101010 10101010 11101110
                        
 
-enum led_state {NONE, BLINK_RED_KEY, ORANGE_KEY, RED_NO, PAUSE};
+enum led_state {NONE, BLINK_RED_KEY, BLINK_GREEN_KEY, ORANGE_KEY, RED_NO, PAUSE};
 enum led_state led_state = NONE;
 
 #define MAX_BRIGHT 10
@@ -60,6 +60,28 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(32, PIN, NEO_GRB + NEO_KHZ800);
 char once = 1;
 aes_context ctx;
 static char iv[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23};
+
+char *master_pass;
+uint16_t master_pass_length = 0;
+
+
+char *master_aes;
+
+bool done = false;
+
+
+union byte_union{
+  uint16_t length;
+  uint8_t bytes[2];
+};
+
+struct Message{
+  char type;
+  union byte_union length;
+  char *message;
+};
+
+struct Message master_key_m;
 
 int decrypt_all(char * data, uint8_t * key, const void * iv, size_t len){
   aes192_cbc_dec(key, iv, data, len);
@@ -139,23 +161,7 @@ int crypto_test(){
   Serial.println(plain2);
 }
 
-char *master_pass;
-uint16_t master_pass_length = 0;
 
-
-char *master_aes;
-
-
-union byte_union{
-  uint16_t length;
-  uint8_t bytes[2];
-};
-
-struct Message{
-  char type;
-  union byte_union length;
-  char *message;
-};
 
 // Fills m with master key data
 struct Message *read_mkey(struct Message *m)
@@ -427,6 +433,7 @@ void update_led()
     // need to initialize the new state
     switch (led_state) {
       case BLINK_RED_KEY:
+      case BLINK_GREEN_KEY:
         strip.setBrightness(0);
         brightness = 1;
         brighten = true;
@@ -444,10 +451,11 @@ void update_led()
     return;
   }
 
-  if (led_state == BLINK_RED_KEY) {
+  if (led_state == BLINK_RED_KEY || led_state == BLINK_GREEN_KEY) {
     for (int i = 0; i < 32; ++i) {
       if ((KEY_SHAPE >> i) & 1) {
-        strip.setPixelColor(i, strip.Color(255 / MAX_BRIGHT * max(1, brightness), 0, 0));
+        strip.setPixelColor(i, strip.Color(led_state == BLINK_RED_KEY ? 255 / MAX_BRIGHT * max(1, brightness) : 0, 
+          led_state == BLINK_GREEN_KEY ? 255 / MAX_BRIGHT * max(1, brightness) : 0, 0));
       }
     }
     
@@ -505,9 +513,10 @@ void setup() {
   master_pass = NULL;
   master_aes = NULL;
 
-  led_state = RED_NO;
+  led_state = BLINK_RED_KEY;
   
   request_master_pass();
+  // master_pass = "password123BigColtonAndB";
   // master_pass = "password123";
   // Serial.println("Setup complete!");
 
@@ -532,41 +541,52 @@ void loop() {
   }
   free(me);
   me = NULL;
-  if (master_pass) {
-    strip.setPixelColor(1, 0, 255, 0);
-    strip.show();
-  } else {
-    strip.setPixelColor(1, 0, 0, 0);
-    strip.show();
-  }
 
   if (master_pass && !master_aes) {
-    // if (strlen(master_pass) < 24 || master_pass_length < 24) {
-    //   // master_pass[master_pass_length+1] = 0;
-    //   strncpy(master_pass + strlen(master_pass), PASSWORD_SALT, 24 - strlen(master_pass));
-    // }
-    
-    struct Message master_key_m;
     if (!read_mkey(&master_key_m)) {
       return;
     }
 
-    // master_key_m.message is now the key that can decrypt the toc. This key still has padding.
     decrypt_all(master_key_m.message, master_pass, iv, 32);
-    // Serial.println("About to encrypt TOC");
-   //encrypt_toc(&master_key_m);
-   decrypt_toc(&master_key_m);
-   master_aes = 1;
+    if (master_key_m.message[31] > 16) {
+      master_pass = NULL;
+      led_state = RED_NO;
+      update_led();
+      return;
+    }
+    
+    for (int i = 0; i < master_key_m.message[31]; ++i) {
+      if (master_key_m.message[31 - i] != master_key_m.message[31]) {
+        master_pass = NULL;
+        led_state = RED_NO;
+        update_led();
+        return;
+      }
+    }
+
+    for (int i = 0; i < 31 - master_key_m.message[31]; ++i) {
+      if (master_key_m.message[i] < 41 || master_key_m.message[i] > 176) {
+        master_pass = NULL;
+        led_state = RED_NO;
+        update_led();
+        return;
+      }
+    }
+
+    led_state = BLINK_GREEN_KEY;
+    update_led();
+    master_aes = master_key_m.message;
   }
-  if (master_pass && master_aes) {
-    strip.setPixelColor(2, 0, 255, 0);
-    strip.show();
-    // Serial.println(master_pass);
+
+  if (master_aes && !done) {
+    decrypt_toc(&master_key_m);
+    done = true;
   }
 
   update_led();
   delay(50);
 }
+
 
 
 
