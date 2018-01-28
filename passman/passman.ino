@@ -37,23 +37,61 @@
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(32, PIN, NEO_GRB + NEO_KHZ800);
 
+char iv[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
+char once = 1;
+aes_context ctx;
+
+char * encrypt(char * data, uint8_t * key, size_t * len){
+  ctx = aes128_cbc_enc_start(key,iv);
+  *len = strlen(data);
+  char pad = *len % 16;
+  if (pad == 0)
+    pad = 16;
+  *len = *len + pad;
+  char * cipherText = malloc(sizeof(char) * *len);
+  memset(cipherText, 0, *len);
+  memcpy(cipherText, data, *len);
+  aes128_cbc_enc_continue(ctx, cipherText, *len);
+  aes128_cbc_enc_finish(ctx);
+  return cipherText;
+}
+
+int decrypt(char * data, uint8_t * key, size_t len){
+  ctx = aes128_cbc_dec_start(key,iv);
+  aes128_cbc_dec_continue(ctx, data, len);
+  aes128_cbc_dec_finish(ctx);
+}
+
+int crypto_test(){
+    Serial.print("Plaintext: ");
+    uint8_t key[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
+    char * data2 = malloc(sizeof(char) * 33);
+    strcpy(data2, "123 456 789 123 456 789 123 456"); 
+    Serial.println(data2);
+    int newLen;
+    char * newData = encrypt(data2, key, &newLen);
+
+    Serial.print("encrypted:");
+    Serial.println(newData);
+  
+    decrypt(newData, key, 32);
+    Serial.print("decrypted:");
+    Serial.println(data2);
+    Serial.println(71 % 16);
+}
 
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
-  uint8_t key[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
-  char data[] = "0123456789012345"; //16 chars == 16 bytes
-  aes128_enc_single(key, data);
-  Serial.print("encrypted:");
-  Serial.println(data);
-  aes128_dec_single(key, data);
-  Serial.print("decrypted:");
-  Serial.println(data);
+  delay(5000);
+  crypto_test();
+}
 
 
 void loop() {
   // put your main code here, to run repeatedly:
-  Serial.println("test");
+
   delay(1000);
+  once = 0;
 }
 
